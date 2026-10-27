@@ -1,0 +1,346 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StudyOS — Student Command Center</title>
+<style>
+:root {
+  --bg: #f5f7fb;
+  --card: #ffffff;
+  --text: #172033;
+  --muted: #6b7280;
+  --accent: #6558e8;
+  --border: #e6e9f0;
+  --green: #17845b;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.5 system-ui, sans-serif;
+}
+header {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  padding: 18px max(20px, calc((100% - 1100px)/2));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.logo { font-size: 22px; font-weight: 800; }
+.logo span { color: var(--accent); }
+header small { color: var(--muted); }
+main { max-width: 1100px; margin: 30px auto; padding: 0 20px; }
+h1 { margin-bottom: 4px; font-size: 30px; }
+.subtitle { color: var(--muted); margin-top: 0; }
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin: 25px 0;
+}
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+  min-width: 0;
+}
+.stat-label { color: var(--muted); font-size: 13px; }
+.stat-number { font-size: 30px; font-weight: 750; margin-top: 5px; }
+.layout {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 18px;
+  align-items: start;
+}
+h2 { font-size: 18px; margin: 0 0 16px; }
+form { display: grid; gap: 10px; margin-bottom: 20px; }
+label { font-size: 13px; font-weight: 650; }
+input, select, button {
+  font: inherit;
+  border-radius: 8px;
+}
+input, select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border);
+  background: white;
+  color: var(--text);
+}
+button {
+  cursor: pointer;
+  border: 0;
+  padding: 10px 14px;
+  background: var(--accent);
+  color: white;
+  font-weight: 650;
+}
+button:hover { filter: brightness(.95); }
+button:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 3px solid #b8b2ff;
+  outline-offset: 2px;
+}
+.secondary {
+  background: #efedff;
+  color: #5145c9;
+}
+.danger {
+  background: #fff0f0;
+  color: #b42318;
+}
+.item {
+  display: flex;
+  gap: 10px;
+  align-items: start;
+  padding: 13px 0;
+  border-top: 1px solid var(--border);
+}
+.item:first-child { border-top: 0; }
+.item-content { flex: 1; min-width: 0; }
+.item-title { font-weight: 650; overflow-wrap: anywhere; }
+.meta { color: var(--muted); font-size: 12px; margin-top: 4px; }
+.done .item-title {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+.item input[type=checkbox] { width: auto; margin-top: 5px; }
+.item button { padding: 5px 8px; font-size: 12px; }
+.empty { color: var(--muted); padding: 15px 0; }
+.session { background: #f5f3ff; border-radius: 10px; padding: 13px; margin-bottom: 10px; }
+.session strong { display: block; }
+.session small { color: var(--muted); }
+footer { text-align: center; padding: 30px 15px; color: var(--muted); font-size: 12px; }
+@media(max-width:700px) {
+  .layout { grid-template-columns: 1fr; }
+  .stats { gap: 8px; }
+  .card { padding: 14px; }
+  .stat-number { font-size: 24px; }
+  header small { display: none; }
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Study<span>OS</span></div>
+  <small>Your semester, organized.</small>
+</header>
+
+<main>
+  <h1 id="greeting">Your command center</h1>
+  <p class="subtitle" id="today"></p>
+
+  <section class="stats">
+    <div class="card">
+      <div class="stat-label">Open assignments</div>
+      <div class="stat-number" id="openCount">0</div>
+    </div>
+    <div class="card">
+      <div class="stat-label">Due today or overdue</div>
+      <div class="stat-number" id="dueCount">0</div>
+    </div>
+    <div class="card">
+      <div class="stat-label">Completed</div>
+      <div class="stat-number" id="doneCount">0</div>
+    </div>
+  </section>
+
+  <div class="layout">
+    <section class="card">
+      <h2>Assignments</h2>
+      <form id="assignmentForm">
+        <label for="task">Assignment name</label>
+        <input id="task" maxlength="100" placeholder="e.g. Calculus problem set" required>
+
+        <label for="course">Course</label>
+        <input id="course" maxlength="60" placeholder="e.g. Calculus II" required>
+
+        <label for="deadline">Due date</label>
+        <input id="deadline" type="date" required>
+
+        <button type="submit">+ Add assignment</button>
+      </form>
+      <div id="assignments"></div>
+    </section>
+
+    <section class="card">
+      <h2>Study planner</h2>
+      <form id="sessionForm">
+        <label for="sessionTitle">What will you study?</label>
+        <input id="sessionTitle" maxlength="100" placeholder="e.g. Review chapter 4" required>
+
+        <label for="sessionDate">Study date</label>
+        <input id="sessionDate" type="date" required>
+
+        <label for="minutes">Duration</label>
+        <select id="minutes">
+          <option value="25">25 minutes</option>
+          <option value="45">45 minutes</option>
+          <option value="60">60 minutes</option>
+          <option value="90">90 minutes</option>
+        </select>
+
+        <button type="submit">+ Plan study session</button>
+      </form>
+      <div id="sessions"></div>
+    </section>
+  </div>
+</main>
+
+<footer>StudyOS · Your work is saved in this browser.</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+const today = new Date();
+const localDate = d => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
+const prettyDate = s => {
+  if (!s) return "No date";
+  return new Date(s + "T12:00:00").toLocaleDateString(
+    undefined, { month: "short", day: "numeric", year: "numeric" }
+  );
+};
+const read = key => {
+  try {
+    const value = JSON.parse(localStorage.getItem(key) || "[]");
+    return Array.isArray(value) ? value : [];
+  } catch { return []; }
+};
+let assignments = read("studyos-assignments");
+let sessions = read("studyos-sessions");
+
+$("today").textContent = today.toLocaleDateString(undefined, {
+  weekday: "long", month: "long", day: "numeric", year: "numeric"
+});
+$("deadline").value = localDate(today);
+$("sessionDate").value = localDate(today);
+
+function save() {
+  localStorage.setItem("studyos-assignments", JSON.stringify(assignments));
+  localStorage.setItem("studyos-sessions", JSON.stringify(sessions));
+}
+
+function node(tag, text, className) {
+  const el = document.createElement(tag);
+  el.textContent = text;
+  if (className) el.className = className;
+  return el;
+}
+
+function render() {
+  const open = assignments.filter(a => !a.done);
+  const due = open.filter(a => a.date <= localDate(today));
+  $("openCount").textContent = open.length;
+  $("dueCount").textContent = due.length;
+  $("doneCount").textContent = assignments.filter(a => a.done).length;
+
+  const list = $("assignments");
+  list.replaceChildren();
+
+  const sorted = [...assignments].sort((a, b) =>
+    Number(a.done) - Number(b.done) || a.date.localeCompare(b.date)
+  );
+
+  if (!sorted.length) {
+    list.append(node("p", "No assignments yet. Add your first one above.", "empty"));
+  }
+
+  sorted.forEach(a => {
+    const item = node("div", "", "item" + (a.done ? " done" : ""));
+    const check = document.createElement("input");
+    check.type = "checkbox";
+    check.checked = a.done;
+    check.setAttribute("aria-label", "Mark " + a.title + " complete");
+    check.addEventListener("change", () => {
+      a.done = check.checked;
+      save();
+      render();
+    });
+
+    const content = node("div", "", "item-content");
+    content.append(node("div", a.title, "item-title"));
+    content.append(node("div", a.course + " · Due " + prettyDate(a.date), "meta"));
+
+    const remove = node("button", "Delete", "danger");
+    remove.type = "button";
+    remove.addEventListener("click", () => {
+      assignments = assignments.filter(x => x.id !== a.id);
+      save();
+      render();
+    });
+
+    item.append(check, content, remove);
+    list.append(item);
+  });
+
+  const sessionList = $("sessions");
+  sessionList.replaceChildren();
+
+  const upcoming = [...sessions].sort((a, b) =>
+    a.date.localeCompare(b.date)
+  );
+
+  if (!upcoming.length) {
+    sessionList.append(node("p", "No study sessions planned yet.", "empty"));
+  }
+
+  upcoming.forEach(s => {
+    const box = node("div", "", "session");
+    box.append(node("strong", s.title));
+    box.append(node("small", prettyDate(s.date) + " · " + s.minutes + " minutes"));
+
+    const remove = node("button", "Remove", "secondary");
+    remove.type = "button";
+    remove.style.marginTop = "10px";
+    remove.addEventListener("click", () => {
+      sessions = sessions.filter(x => x.id !== s.id);
+      save();
+      render();
+    });
+    box.append(remove);
+    sessionList.append(box);
+  });
+}
+
+$("assignmentForm").addEventListener("submit", e => {
+  e.preventDefault();
+  assignments.push({
+    id: crypto.randomUUID(),
+    title: $("task").value.trim(),
+    course: $("course").value.trim(),
+    date: $("deadline").value,
+    done: false
+  });
+  save();
+  e.target.reset();
+  $("deadline").value = localDate(today);
+  render();
+});
+
+$("sessionForm").addEventListener("submit", e => {
+  e.preventDefault();
+  sessions.push({
+    id: crypto.randomUUID(),
+    title: $("sessionTitle").value.trim(),
+    date: $("sessionDate").value,
+    minutes: Number($("minutes").value)
+  });
+  save();
+  e.target.reset();
+  $("sessionDate").value = localDate(today);
+  $("minutes").value = "25";
+  render();
+});
+
+render();
+</script>
+</body>
+</html>
