@@ -51,12 +51,21 @@ h1 { margin-bottom: 4px; font-size: 30px; }
   align-items: start;
 }
 h2 { font-size: 18px; margin: 0 0 16px; }
+.section-help, .help-text { color: var(--muted); font-size: 13px; }
+.section-help { margin: -8px 0 16px; }
+.help-text { margin-top: -5px; }
+.next-task {
+  background: #f0efff;
+  border: 1px solid #dedbff;
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 18px;
+}
+.next-task strong { color: #5145c9; font-size: 12px; letter-spacing: .06em; }
+.next-task > div:nth-child(2) { font-weight: 700; margin-top: 5px; }
 form { display: grid; gap: 10px; margin-bottom: 20px; }
 label { font-size: 13px; font-weight: 650; }
-input, select, button {
-  font: inherit;
-  border-radius: 8px;
-}
+input, select, button { font: inherit; border-radius: 8px; }
 input, select {
   width: 100%;
   padding: 10px;
@@ -77,14 +86,8 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   outline: 3px solid #b8b2ff;
   outline-offset: 2px;
 }
-.secondary {
-  background: #efedff;
-  color: #5145c9;
-}
-.danger {
-  background: #fff0f0;
-  color: #b42318;
-}
+.secondary { background: #efedff; color: #5145c9; }
+.danger { background: #fff0f0; color: #b42318; }
 .item {
   display: flex;
   gap: 10px;
@@ -96,10 +99,19 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .item-content { flex: 1; min-width: 0; }
 .item-title { font-weight: 650; overflow-wrap: anywhere; }
 .meta { color: var(--muted); font-size: 12px; margin-top: 4px; }
-.done .item-title {
-  text-decoration: line-through;
-  color: var(--muted);
+.priority {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 7px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 650;
 }
+.priority-high { background: #fff0f0; color: #b42318; }
+.priority-normal { background: #eef2ff; color: #4338a8; }
+.priority-low { background: #f1f3f5; color: #596273; }
+.item-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.done .item-title { text-decoration: line-through; color: var(--muted); }
 .item input[type=checkbox] { width: auto; margin-top: 5px; }
 .item button { padding: 5px 8px; font-size: 12px; }
 .empty { color: var(--muted); padding: 15px 0; }
