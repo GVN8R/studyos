@@ -189,8 +189,8 @@ function render() {
         return;
       }
       const priorityInput = prompt("Priority: high, normal, or low", priority || "normal");
-      if (priority === null) return;
-      const normalizedPriority = priority.trim().toLowerCase();
+      if (priorityInput === null) return;
+      const normalizedPriority = priorityInput.trim().toLowerCase();
 
       if (!["high", "normal", "low"].includes(normalizedPriority)) {
         alert("Priority must be high, normal, or low.");
