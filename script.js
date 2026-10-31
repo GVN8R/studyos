@@ -220,7 +220,7 @@ function render() {
     });
 
     actions.append(edit, remove);
-    item.append(check, content, remove);
+    item.append(check, content, actions);
     list.append(item);
   });
 
