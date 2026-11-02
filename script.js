@@ -134,13 +134,13 @@ $("editDialog").addEventListener("click", event => {
 
 $("editForm").addEventListener("submit", event => {
   event.preventDefault();
-  const title = $("editTask").value.trim();
-  const course = $("editCourse").value.trim();
+  const title = $("task").value.trim();
+  const course = $("course").value.trim();
   const date = $("editDeadline").value;
   const priority = $("editPriority").value;
 
   if (!title || !course) {
-    $("editError").textContent = "Assignment name and course cannot be black.";
+    alert("Assignment name and course cannot be blank.");
     return;
   }
   if (!isValidDateString(date)) {
