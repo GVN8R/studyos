@@ -28,6 +28,7 @@ let assignments = read("studyos-assignments").map(a => ({
   priority: ["high", "normal", "low"].includes(a.priority) ? a.priority : "normal"
 }));
 let sessions = read("studyos-sessions");
+let editingAssignmentId = null;
 
 $("today").textContent = new Date().toLocaleDateString(undefined, {
   weekday: "long", month: "long", day: "numeric", year: "numeric"
@@ -47,14 +48,12 @@ function node(tag, text, className) {
   return el;
 }
 
-
 function daysUntil(date) {
   const todayKey = localDate(new Date());
   const start = new Date(todayKey + "T00:00:00");
   const due = new Date(date + "T00:00:00");
   return Math.round((due - start) / 86400000);
 }
-
 
 function isValidDateString(value) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -68,7 +67,6 @@ function isValidDateString(value) {
 function priorityOf(a) {
   return ["high", "normal", "low"].includes(a.priority) ? a.priority : "normal";
 }
-
 
 function taskBucket(a) {
   const d = daysUntil(a.date);
@@ -90,30 +88,77 @@ function compareOpenTasks(a, b) {
     a.title.localeCompare(b.title);
 }
 
-function getPriorityReason(a, position = false) {
+function getPriorityReason(a) {
   const d = daysUntil(a.date);
   const priority = priorityOf(a);
 
-  if (d < 0) return "Overdue - this needs attention.";
+  if (d < 0) return "Overdue";
   if (priority === "high" && d <= 2) {
-    return d === 0
-      ? "High priority and due today - this ranks near the top."
-      : d === 1
-        ? "High priority and due tomorrow - this ranks near the top."
-        : "High priority and due in 2 days - this ranks near the top.";
+    return d === 0 ? "High priority ~ Due today"
+      : d === 1 ? "High priority ~ Due tomorrow"
+      : "High priority ~ Due in 2 days";
   }
   if (d <= 2) {
-    const dueText = d === 0 ? "Due today" : d === 1 ? "Due tomorrow" : "Due in 2 days";
-    return dueText + " - near-term deadlines come before less urgent work.";
+    return d === 0 ? "Due today"
+      : d === 1 ? "Due tomorrow"
+      : "Due in 2 days";
   }
-  if (priority === "high") {
-    return "Marked high priority - no overdue or near-term task is ahead of it.";
-  }
-  if (priority === "low") {
-    return "Marked low priority - higher-priority or nearer deadlines come first.";
-  }
-  return "Normal priority - earlier deadlines and high-priority work come first.";
+  if (priority === "high") return "High priority";
+  if (priority === "low") return "Low priority";
+  return "Normal priority";
 }
+
+function openEditDialog(a) {
+  editingAssignmentId = a.id;
+  $("editTask").value = a.title || "";
+  $("editCourse").value = a.course || "";
+  $("editDeadline").value = a.date || "";
+  $("editPriority").value = priorityOf(a);
+  $("editError").textContent = "";
+  $("editDialog").showModal();
+  $("editTask").focus();
+}
+
+function closeEditDialog() {
+  $("editDialog").close();
+  editingAssignmentId = null;
+  $("editError").textContent = "";
+}
+
+$("closeEdit").addEventListener("click", closeEditDialog);
+$("cancelEdit").addEventListener("click", closeEditDialog);
+
+$("editDialog").addEventListener("click", event => {
+  if (event.target === $("editDialog")) closeEditDialog();
+});
+
+$("editForm").addEventListener("submit", event => {
+  event.preventDefault();
+  const title = $("editTask").value.trim();
+  const course = $("editCourse").value.trim();
+  const date = $("editDeadline").value;
+  const priority = $("editPriority").value;
+
+  if (!title || !course) {
+    $("editError").textContent = "Assignment name and course cannot be black.";
+    return;
+  }
+  if (!isValidDateString(date)) {
+    $("editError").textContent = "Please choose a valid due date.";
+    return;
+  }
+
+  const assignment = assignments.find(a => a.id === editingAssignmentId);
+  if (!assignment) {
+    closeEditDialog();
+    return;
+  }
+
+  Object.assign(assignment, { title, course, date, priority });
+  save();
+  closeEditDialog();
+  render();
+});
 
 function render() {
   const open = assignments.filter(a => !a.done);
@@ -150,7 +195,10 @@ function render() {
   }
 
   sorted.forEach(a => {
-    const item = node("div", "", "item" + (a.done ? " done" : ""));
+    const isStartHere = !a.done && firstOpen && a.id === firstOpen.id;
+    const item = node("div", "",
+      "item" + (a.done ? " done" : "") + (isStartHere ? " start-here-item" : ""));
+    
     const check = document.createElement("input");
     check.type = "checkbox";
     check.checked = Boolean(a.done);
@@ -162,6 +210,7 @@ function render() {
     });
 
     const content = node("div", "", "item-content");
+    if (isStartHere) content.append(node("span", "START HERE", "start-here-tag"));
     content.append(node("div", a.title, "item-title"));
     content.append(node("div", a.course + " · Due " + prettyDate(a.date), "meta"));
     
@@ -177,39 +226,7 @@ function render() {
 
     const edit = node("button", "Edit", "secondary");
     edit.type = "button";
-    edit.addEventListener("click", () => {
-      const title = prompt("Assignment name:", a.title);
-      if (title === null) return;
-      const course = prompt("Course:", a.course);
-      if (course === null) return;
-      const date = prompt("Due date (YYYY-MM-DD):", a.date);
-      if (date === null) return;
-      if (!isValidDateString(date.trim())) {
-        alert("Please enter a real calendar date in YYYY-MM-DD format.");
-        return;
-      }
-      const priorityInput = prompt("Priority: high, normal, or low", priority || "normal");
-      if (priorityInput === null) return;
-      const normalizedPriority = priorityInput.trim().toLowerCase();
-
-      if (!["high", "normal", "low"].includes(normalizedPriority)) {
-        alert("Priority must be high, normal, or low.");
-        return;
-      }
-      if (!title.trim() || !course.trim()) {
-        alert("Assignment name and course cannot be blank.");
-        return;
-      }
-
-      Object.assign(a, {
-        title: title.trim(),
-        course: course.trim(),
-        date: date.trim(),
-        priority: normalizedPriority
-      });
-      save();
-      render();
-    });
+    edit.addEventListener("click", () => openEditDialog(a));
 
     const remove = node("button", "Delete", "danger");
     remove.type = "button";

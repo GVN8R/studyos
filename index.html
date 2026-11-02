@@ -1,13 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>StudyOS — Student Command Center</title>
   <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
   <header>
     <div class="logo">Study<span>OS</span></div>
@@ -58,6 +56,11 @@
 
           <button type="submit">+ Add assignment</button>
         </form>
+
+        <div class="sort-explanation">
+          <strong>How tasks are ordered</strong>
+          <p>Overdue work comes first, followed by high-prioriity work due soon. Other near-term deadlines come next, then remaining tasks by priority and due date. Completed work appears last.</p>
+        </div>
         <div id="assignments"></div>
       </section>
 
@@ -85,9 +88,38 @@
     </div>
   </main>
 
-  <footer>StudyOS · Your work is saved in this browser.</footer>
+  <dialog id="editDialog" class="edit-dialog">
+    <form if="editForm" method="dialog">
+      <div class="dialog-heading">
+        <h2>Edit assignment</h2>
+        <button type="button" id="closeEdit" class="icon-button" aria-label="Close edit form">x</button>
+      </div>
 
+      <label for="editTask">Assignment name</label>
+      <input id="editTask" maxlength="100" required>
+
+      <label for="editCourse">Course</label>
+      <input id="editCourse" maxlength="60" required>
+
+      <label for="editDeadline">Due date</label>
+      <input id="editDeadline" type="date" required>
+
+      <label for="editPriority">Priority</label>
+      <select id="editPriority">
+        <option value="normal">Normal</option>
+        <option value="high">High</option>
+        <option value="low">Low</option>
+      </select>
+
+      <p id="editError" class="form-error" role="alert"></p>
+      <div class="dialog-actions">
+        <button type="button" id="cancelEdit" class="secondary">Cancel</button>
+        <button type="submit">Save changes</button>
+      </div>
+    </form>
+  </dialog>
+
+  <footer>StudyOS · Your work is saved in this browser.</footer>
   <script src="script.js"></script>
 </body>
-
 </html>
