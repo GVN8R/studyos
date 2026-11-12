@@ -29,6 +29,7 @@ let assignments = read("studyos-assignments").map(a => ({
 }));
 let sessions = read("studyos-sessions");
 let editingAssignmentId = null;
+const checkinStorageKey = "studyos-checkin-date";
 
 $("today").textContent = new Date().toLocaleDateString(undefined, {
   weekday: "long", month: "long", day: "numeric", year: "numeric"
@@ -39,6 +40,52 @@ $("sessionDate").value = localDate(new Date());
 function save() {
   localStorage.setItem("studyos-assignments", JSON.stringify(assignments));
   localStorage.setItem("studyos-sessions", JSON.stringify(sessions));
+}
+
+function getSortedAssignments() {
+  return [...assignments].sort((a, b) => {
+    if (a.done !== b.done) return Number(a.done) - Number(b.done);
+    if (a.done) return a.date.localeCompare(b.date);
+    return compareOpenTasks(a, b);
+  });
+}
+
+function getStartTask() {
+  return getSortedAssignments().find(a => !a.done) || null;
+}
+
+function renderCheckin() {
+  const todayKey = localDate(new Date());
+  const checkedIn = localStorage.getItem(checkinStorageKey) === todayKey;
+  const focus = getStartTask();
+  const focusBox = $("checkinFocus");
+  focusBox.replaceChildren();
+
+  $("checkinStatus").textContent = checkedIn ? "Checked in today" : "Not checked in";
+  $("checkinStatus").classList.toggle("is-complete", checkedIn);
+  $("completeCheckin").textContent = checkedIn ? "Check-in complete" : "I've reviewed today's plan";
+  $("completeCheckin").disabled = checkedIn;
+  $("planFocusSession").disabled = !focus;
+
+  if (focus) {
+    focusBox.append(node("span", "TODAY'S FOCUS", "checkin-label"));
+    focusBox.append(node("h3", focus.title, "checkin-title"));
+    focusBox.append(node("p", focus.course + " · Due " + prettyDate(focus.date), "meta"));
+    const reason = getPriorityReason(focus);
+    const priority = priorityOf(focus);
+    const explanation = reason
+      ? reason + " · " + priority.charAt(0).toUpperCase() + priority.slice(1) + " priority"
+      : priority.charAt(0).toUpperCase() + priority.slice(1) + " priority · selected by your task order";
+    focusBox.append(node("p", explanation, "checkin-reason"));
+  } else {
+    focusBox.append(node("span", "NO OPEN ASSIGNMENTS", "checkin-label"));
+    focusBox.append(node("h3", "You're clear for now.", "checkin-title"));
+    focusBox.append(node("p", "Add an assignment when you have something new to plan.", "meta"));
+  }
+
+  $("checkinMessage").textContent = checkedIn
+    ? "Your plan has been reviewed for today. You can update it any time your priorities change."
+    : "Take a moment to review your next step, then make a small start.";
 }
 
 function node(tag, text, className) {
@@ -170,11 +217,7 @@ function render() {
   const list = $("assignments");
   list.replaceChildren();
 
-  const sorted = [...assignments].sort((a, b) => {
-    if (a.done !== b.done) return Number(a.done) - Number(b.done);
-    if (a.done) return a.date.localeCompare(b.date);
-    return compareOpenTasks(a, b);
-  });
+  const sorted = getSortedAssignments();
 
   const nextTask = $("nextTask");
   nextTask.replaceChildren();
@@ -269,6 +312,8 @@ function render() {
     box.append(remove);
     sessionList.append(box);
   });
+
+  renderCheckin();
 }
 
 $("assignmentForm").addEventListener("submit", e => {
@@ -323,6 +368,26 @@ $("sessionForm").addEventListener("submit", e => {
   $("sessionDate").value = localDate(new Date());
   $("minutes").value = "25";
   render();
+});
+
+$("planFocusSession").addEventListener("click", () => {
+  const focus = getStartTask();
+  if (!focus) return;
+
+  sessions.push({
+    id: crypto.randomUUID(),
+    title: "Work on: " + focus.title,
+    date: localDate(new Date()),
+    minutes: 25
+  });
+  save();
+  render();
+  $("sessionForm").scrollIntoView({ behavior: "smooth", block: "center" });
+});
+
+$("completeCheckin").addEventListener("click", () => {
+  localStorage.setItem(checkinStorageKey, localDate(new Date()));
+  renderCheckin();
 });
 
 render();

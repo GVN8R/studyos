@@ -31,6 +31,22 @@
       </div>
     </section>
 
+    <section class="card daily-checkin" aria-labelledby="checkinHeading">
+      <div class="checkin-topline">
+        <div>
+          <p class="eyebrow">A QUICK DAILY RESET</p>
+          <h2 id="checkinHeading">Today's check-in</h2>
+        </div>
+        <span id="checkinStatus" class="checkin-status">Not checked in</span>
+      </div>
+      <div id="checkinFocus" class="checkin-focus" aria-live="polite"></div>
+      <div class="checkin-actions">
+        <button type="button" id="planFocusSession">Plan a 25-minute session</button>
+        <button type="button" id="completeCheckin" class="secondary">I've reviewed today's plan</button>
+      </div>
+      <p id="checkinMessage" class="checkin-message" aria-live="polite">A quick look at your next step can make it easier to get started.</p>
+    </section>
+
     <div class="layout">
       <section class="card">
         <h2>Assignments</h2>
