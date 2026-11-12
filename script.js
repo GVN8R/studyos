@@ -94,18 +94,18 @@ function getPriorityReason(a) {
 
   if (d < 0) return "Overdue";
   if (priority === "high" && d <= 2) {
-    return d === 0 ? "High priority ~ Due today"
-      : d === 1 ? "High priority ~ Due tomorrow"
-      : "High priority ~ Due in 2 days";
+    return d === 0 ? "Due today"
+      : d === 1 ? "Due tomorrow"
+      : "Due in 2 days";
   }
   if (d <= 2) {
     return d === 0 ? "Due today"
       : d === 1 ? "Due tomorrow"
       : "Due in 2 days";
   }
-  if (priority === "high") return "High priority";
-  if (priority === "low") return "Low priority";
-  return "Normal priority";
+  // The priority badge already communicates High, Normal, or Low.
+  // Avoid repeating that information in the explanation line.
+  return "";
 }
 
 function openEditDialog(a) {
@@ -134,13 +134,13 @@ $("editDialog").addEventListener("click", event => {
 
 $("editForm").addEventListener("submit", event => {
   event.preventDefault();
-  const title = $("task").value.trim();
-  const course = $("course").value.trim();
+  const title = $("editTask").value.trim();
+  const course = $("editCourse").value.trim();
   const date = $("editDeadline").value;
   const priority = $("editPriority").value;
 
   if (!title || !course) {
-    alert("Assignment name and course cannot be blank.");
+    $("editError").textContent = "Assignment name and course cannot be blank.";
     return;
   }
   if (!isValidDateString(date)) {
@@ -183,7 +183,8 @@ function render() {
   if (firstOpen) {
     nextTask.append(node("strong", "START HERE"));
     nextTask.append(node("div", firstOpen.title));
-    nextTask.append(node("div", getPriorityReason(firstOpen), true));
+    const startReason = getPriorityReason(firstOpen);
+    if (startReason) nextTask.append(node("div", startReason, "meta"));
     nextTask.append(node("div", "Try a 25-minute session, then reassess what you need next.", "meta"));
   } else {
     nextTask.append(node("strong", "YOU'RE ALL CAUGHT UP"));
@@ -220,7 +221,10 @@ function render() {
       priority.charAt(0).toUpperCase() + priority.slice(1) + " priority",
       "priority priority-" + priority
     ));
-    if (!a.done) content.append(node("div", getPriorityReason(a), "meta"));
+    if (!a.done) {
+      const reason = getPriorityReason(a);
+      if (reason) content.append(node("div", reason, "meta"));
+    }
 
     const actions = node("div", "", "item-actions");
 
@@ -269,15 +273,22 @@ function render() {
 
 $("assignmentForm").addEventListener("submit", e => {
   e.preventDefault();
-if (!isValidDateString($("deadline").value)) {
-  alert("Please choose a valid due date.");
-  return;
-}
+  const title = $("task").value.trim();
+  const course = $("course").value.trim();
+
+  if (!title || !course) {
+    alert("Assignment name and course cannot be blank.");
+    return;
+  }
+  if (!isValidDateString($("deadline").value)) {
+    alert("Please choose a valid due date.");
+    return;
+  }
 
   assignments.push({
     id: crypto.randomUUID(),
-    title: $("task").value.trim(),
-    course: $("course").value.trim(),
+    title,
+    course,
     date: $("deadline").value,
     priority: $("priority").value,
     done: false
@@ -291,6 +302,11 @@ if (!isValidDateString($("deadline").value)) {
 
 $("sessionForm").addEventListener("submit", e => {
   e.preventDefault();
+  const title = $("sessionTitle").value.trim();
+  if (!title) {
+    alert("Study session name cannot be blank.");
+    return;
+  }
   if (!isValidDateString($("sessionDate").value)) {
     alert("Please choose a valid study date.");
     return;
@@ -298,7 +314,7 @@ $("sessionForm").addEventListener("submit", e => {
 
   sessions.push({
     id: crypto.randomUUID(),
-    title: $("sessionTitle").value.trim(),
+    title,
     date: $("sessionDate").value,
     minutes: Number($("minutes").value)
   });
