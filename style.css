@@ -202,3 +202,9 @@ footer { text-align: center; padding: 30px 15px; color: var(--muted); font-size:
   .item { flex-wrap: wrap; }
   .item-actions { margin-left: 28px; }
 }
+
+.checkin-status.is-changed { background: #fff1d6; color: #8a5200; }
+.checkin-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(105px, 1fr)); gap: 10px; margin: 14px 0; }
+.checkin-stat { display: flex; flex-direction: column; gap: 3px; padding: 12px; border: 1px solid var(--border, #e4e7ec); border-radius: 10px; background: var(--surface, #fff); }
+.checkin-stat strong { font-size: 1.35rem; }
+.checkin-stat span { color: var(--muted, #667085); font-size: .8rem; }

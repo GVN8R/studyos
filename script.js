@@ -54,40 +54,68 @@ function getStartTask() {
   return getSortedAssignments().find(a => !a.done) || null;
 }
 
-function renderCheckin() {
+function getPlanSignature() {
+  const relevant = assignments.map(a => ({
+    id: a.id, title: a.title, course: a.course, date: a.date,
+    priority: priorityOf(a), done: Boolean(a.done)
+  })).sort((a, b) => String(a.id).localeCompare(String(b.id)));
+  return JSON.stringify(relevant);
+}
+
+function getCheckinRecord() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(checkinStorageKey) || "null");
+    if (saved && typeof saved === "object" && saved.date) return saved;
+  } catch {}
+  const legacyDate = localStorage.getItem(checkinStorageKey);
+  return legacyDate ? { date: legacyDate, signature: null } : null;
+}
+
+function getCheckinState() {
   const todayKey = localDate(new Date());
-  const checkedIn = localStorage.getItem(checkinStorageKey) === todayKey;
+  const record = getCheckinRecord();
+  if (!record || record.date !== todayKey) return "not-reviewed";
+  if (!record.signature || record.signature !== getPlanSignature()) return "changed";
+  return "reviewed";
+}
+
+function renderCheckin() {
+  const state = getCheckinState();
+  const open = assignments.filter(a => !a.done);
+  const overdue = open.filter(a => daysUntil(a.date) < 0).length;
+  const dueToday = open.filter(a => daysUntil(a.date) === 0).length;
+  const upcoming = open.filter(a => daysUntil(a.date) > 0 && daysUntil(a.date) <= 7).length;
+  const highPriority = open.filter(a => priorityOf(a) === "high").length;
   const focus = getStartTask();
   const focusBox = $("checkinFocus");
   focusBox.replaceChildren();
 
-  $("checkinStatus").textContent = checkedIn ? "Checked in today" : "Not checked in";
-  $("checkinStatus").classList.toggle("is-complete", checkedIn);
-  $("completeCheckin").textContent = checkedIn ? "Check-in complete" : "I've reviewed today's plan";
-  $("completeCheckin").disabled = checkedIn;
+  const statusText = state === "reviewed" ? "Reviewed today" : state === "changed" ? "Plan changed" : "Not reviewed";
+  $("checkinStatus").textContent = statusText;
+  $("checkinStatus").classList.toggle("is-complete", state === "reviewed");
+  $("checkinStatus").classList.toggle("is-changed", state === "changed");
+  $("completeCheckin").textContent = state === "changed" ? "Review updated plan" : state === "reviewed" ? "Review again" : "I've reviewed today's plan";
   $("planFocusSession").disabled = !focus;
 
-  if (focus) {
-    focusBox.append(node("span", "TODAY'S FOCUS", "checkin-label"));
-    focusBox.append(node("h3", focus.title, "checkin-title"));
-    focusBox.append(node("p", focus.course + " · Due " + prettyDate(focus.date), "meta"));
-    const reason = getPriorityReason(focus);
-    const priority = priorityOf(focus);
-    const explanation = reason
-      ? reason + " · " + priority.charAt(0).toUpperCase() + priority.slice(1) + " priority"
-      : priority.charAt(0).toUpperCase() + priority.slice(1) + " priority · selected by your task order";
-    focusBox.append(node("p", explanation, "checkin-reason"));
-  } else {
-    focusBox.append(node("span", "NO OPEN ASSIGNMENTS", "checkin-label"));
-    focusBox.append(node("h3", "You're clear for now.", "checkin-title"));
-    focusBox.append(node("p", "Add an assignment when you have something new to plan.", "meta"));
-  }
+  focusBox.append(node("span", "TODAY'S PLAN AT A GLANCE", "checkin-label"));
+  const summary = node("div", "", "checkin-summary");
+  [[open.length, "open"], [overdue, "overdue"], [dueToday, "due today"], [upcoming, "due in 7 days"], [highPriority, "high priority"]].forEach(([count, label]) => {
+    const stat = node("div", "", "checkin-stat");
+    stat.append(node("strong", String(count)));
+    stat.append(node("span", label));
+    summary.append(stat);
+  });
+  focusBox.append(summary);
+  focusBox.append(node("p", focus
+    ? "Your task order is shown in Start Here. Use this review to check whether the overall plan still fits your day."
+    : "You have no open assignments. Your plan is clear for now.", "meta"));
 
-  $("checkinMessage").textContent = checkedIn
-    ? "Your plan has been reviewed for today. You can update it any time your priorities change."
-    : "Take a moment to review your next step, then make a small start.";
+  $("checkinMessage").textContent = state === "changed"
+    ? "Your assignments changed since your last review. Review the updated plan before you continue."
+    : state === "reviewed"
+      ? "You've reviewed the current plan today. Reviewing it does not mark any assignment complete."
+      : "Review your workload and deadlines. This check-in is separate from completing assignments.";
 }
-
 function node(tag, text, className) {
   const el = document.createElement(tag);
   el.textContent = text;
@@ -386,7 +414,10 @@ $("planFocusSession").addEventListener("click", () => {
 });
 
 $("completeCheckin").addEventListener("click", () => {
-  localStorage.setItem(checkinStorageKey, localDate(new Date()));
+  localStorage.setItem(checkinStorageKey, JSON.stringify({
+    date: localDate(new Date()),
+    signature: getPlanSignature()
+  }));
   renderCheckin();
 });
 
