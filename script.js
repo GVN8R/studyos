@@ -66,7 +66,7 @@ function getStartTask() {
 function getPlanSignature() {
   const relevant = assignments.map(a => ({
     id: a.id, title: a.title, course: a.course, date: a.date,
-    priority: priorityOf(a), done: Boolean(a.done)
+    priority: priorityOf(a), remainingMinutes: remainingMinutesOf(a), done: Boolean(a.done)
   })).sort((a, b) => String(a.id).localeCompare(String(b.id)));
   return JSON.stringify(relevant);
 }
@@ -152,44 +152,63 @@ function priorityOf(a) {
   return ["high", "normal", "low"].includes(a.priority) ? a.priority : "normal";
 }
 
-function taskBucket(a) {
-  const d = daysUntil(a.date);
-  const priority = priorityOf(a);
+function remainingMinutesOf(a) {
+  const value = Number(a.remainingMinutes);
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
 
-  if (d < 0) return 0;
-  if (priority === "high" && d <= 2) return 1;
-  if (d <= 2) return 2;
-  if (priority === "high") return 3;
-  if (priority === "normal") return 4;
-  return 5;
+function urgencyScore(a) {
+  const days = daysUntil(a.date);
+  if (days < 0) return 125 + Math.min(Math.abs(days), 14);
+  if (days === 0) return 115;
+  if (days === 1) return 105;
+  if (days <= 3) return 90 - (days - 2) * 3;
+  if (days <= 7) return 78 - (days - 4) * 2;
+  return Math.max(55, 70 - (days - 8) * 0.5);
+}
+
+function priorityScore(a) {
+  return { high: 12, normal: 6, low: 0 }[priorityOf(a)];
+}
+
+function effortScore(a) {
+  const minutes = remainingMinutesOf(a);
+  if (minutes === null) return 0;
+  if (minutes <= 15) return 4;
+  if (minutes <= 30) return 3;
+  if (minutes <= 60) return 1;
+  if (minutes <= 120) return 0;
+  return -1;
+}
+
+function recommendationScore(a) {
+  return urgencyScore(a) + priorityScore(a) + effortScore(a);
 }
 
 function compareOpenTasks(a, b) {
-  return taskBucket(a) - taskBucket(b) ||
+  return recommendationScore(b) - recommendationScore(a) ||
     daysUntil(a.date) - daysUntil(b.date) ||
     ({ high: 0, normal: 1, low: 2 }[priorityOf(a)] -
     { high: 0, normal: 1, low: 2 }[priorityOf(b)]) ||
+    (remainingMinutesOf(a) ?? Infinity) - (remainingMinutesOf(b) ?? Infinity) ||
     a.title.localeCompare(b.title);
 }
 
 function getPriorityReason(a) {
   const d = daysUntil(a.date);
-  const priority = priorityOf(a);
-
-  if (d < 0) return "Overdue";
-  if (priority === "high" && d <= 2) {
-    return d === 0 ? "Due today"
-      : d === 1 ? "Due tomorrow"
-      : "Due in 2 days";
-  }
-  if (d <= 2) {
-    return d === 0 ? "Due today"
-      : d === 1 ? "Due tomorrow"
-      : "Due in 2 days";
-  }
-  // The priority badge already communicates High, Normal, or Low.
-  // Avoid repeating that information in the explanation line.
-  return "";
+  const deadlineText = d < 0 ? "Overdue"
+    : d === 0 ? "Due today"
+    : d === 1 ? "Due tomorrow"
+    : d <= 7 ? `Due in ${d} days`
+    : `Due ${prettyDate(a.date)}`;
+  const priorityText = priorityOf(a) === "high" ? "High priority"
+    : priorityOf(a) === "low" ? "Low priority" : "";
+  const minutes = remainingMinutesOf(a);
+  const effortText = minutes === null ? "Time estimate not set"
+    : minutes >= 180 ? "About 3+ hours left"
+    : minutes >= 60 ? `About ${minutes / 60} hour${minutes === 60 ? "" : "s"} left`
+    : `About ${minutes} minutes left`;
+  return [deadlineText, priorityText, effortText].filter(Boolean).join(" · ");
 }
 
 function openEditDialog(a) {
@@ -198,6 +217,7 @@ function openEditDialog(a) {
   $("editCourse").value = a.course || "";
   $("editDeadline").value = a.date || "";
   $("editPriority").value = priorityOf(a);
+  $("editRemainingTime").value = remainingMinutesOf(a) === null ? "" : String(remainingMinutesOf(a));
   $("editError").textContent = "";
   $("editDialog").showModal();
   $("editTask").focus();
@@ -222,6 +242,8 @@ $("editForm").addEventListener("submit", event => {
   const course = $("editCourse").value.trim();
   const date = $("editDeadline").value;
   const priority = $("editPriority").value;
+  const remainingMinutes = $("editRemainingTime").value === ""
+    ? null : Number($("editRemainingTime").value);
 
   if (!title || !course) {
     $("editError").textContent = "Assignment name and course cannot be blank.";
@@ -238,7 +260,7 @@ $("editForm").addEventListener("submit", event => {
     return;
   }
 
-  Object.assign(assignment, { title, course, date, priority });
+  Object.assign(assignment, { title, course, date, priority, remainingMinutes });
   save();
   closeEditDialog();
   render();
@@ -368,12 +390,15 @@ $("assignmentForm").addEventListener("submit", e => {
   }
 
   const priority = $("priority").value;
+  const remainingMinutes = $("remainingTime").value === ""
+    ? null : Number($("remainingTime").value);
   assignments.push({
     id: crypto.randomUUID(),
     title,
     course,
     date: $("deadline").value,
     priority,
+    remainingMinutes,
     done: false
   });
   localStorage.setItem(lastCourseStorageKey, course);
@@ -383,6 +408,7 @@ $("assignmentForm").addEventListener("submit", e => {
   $("deadline").value = localDate(new Date());
   $("course").value = course;
   $("priority").value = priority;
+  $("remainingTime").value = "30";
   render();
   $("task").focus();
 });

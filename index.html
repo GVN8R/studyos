@@ -63,6 +63,19 @@
           <label for="deadline">Due date</label>
           <input id="deadline" type="date" required>
 
+          <label for="remainingTime">Estimated time remaining</label>
+          <select id="remainingTime">
+            <option value="">Not set</option>
+            <option value="15">15 minutes</option>
+            <option value="30" selected>30 minutes</option>
+            <option value="45">45 minutes</option>
+            <option value="60">1 hour</option>
+            <option value="90">1 hour 30 minutes</option>
+            <option value="120">2 hours</option>
+            <option value="180">3+ hours</option>
+          </select>
+          <small class="help-text">Estimate the work still left to do. Update it as you make progress.</small>
+
           <label for="priority">Priority</label>
           <select id="priority">
             <option value="normal">Normal</option>
@@ -76,7 +89,7 @@
 
         <div class="sort-explanation">
           <strong>How tasks are ordered</strong>
-          <p>Overdue work comes first, followed by high-priority work due soon. Other near-term deadlines come next, then remaining tasks by priority and due date. Completed work appears last.</p>
+          <p>Start Here balances deadline urgency, priority, and estimated time remaining. Completed work appears last. Estimates are optional and can be updated as you make progress.</p>
         </div>
         <div id="assignments"></div>
       </section>
@@ -120,6 +133,18 @@
 
       <label for="editDeadline">Due date</label>
       <input id="editDeadline" type="date" required>
+
+      <label for="editRemainingTime">Estimated time remaining</label>
+      <select id="editRemainingTime">
+        <option value="">Not set</option>
+        <option value="15">15 minutes</option>
+        <option value="30">30 minutes</option>
+        <option value="45">45 minutes</option>
+        <option value="60">1 hour</option>
+        <option value="90">1 hour 30 minutes</option>
+        <option value="120">2 hours</option>
+        <option value="180">3+ hours</option>
+      </select>
 
       <label for="editPriority">Priority</label>
       <select id="editPriority">
