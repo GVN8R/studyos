@@ -30,12 +30,21 @@ let assignments = read("studyos-assignments").map(a => ({
 let sessions = read("studyos-sessions");
 let editingAssignmentId = null;
 const checkinStorageKey = "studyos-checkin-date";
+const lastCourseStorageKey = "studyos-last-course";
+const lastPriorityStorageKey = "studyos-last-priority";
+const rememberedCourse = localStorage.getItem(lastCourseStorageKey) || "";
+const savedPriority = localStorage.getItem(lastPriorityStorageKey);
+const rememberedPriority = ["high", "normal", "low"].includes(savedPriority)
+  ? savedPriority
+  : "normal";
 
 $("today").textContent = new Date().toLocaleDateString(undefined, {
   weekday: "long", month: "long", day: "numeric", year: "numeric"
 });
 $("deadline").value = localDate(new Date());
 $("sessionDate").value = localDate(new Date());
+$("course").value = rememberedCourse;
+$("priority").value = rememberedPriority;
 
 function save() {
   localStorage.setItem("studyos-assignments", JSON.stringify(assignments));
@@ -358,19 +367,24 @@ $("assignmentForm").addEventListener("submit", e => {
     return;
   }
 
+  const priority = $("priority").value;
   assignments.push({
     id: crypto.randomUUID(),
     title,
     course,
     date: $("deadline").value,
-    priority: $("priority").value,
+    priority,
     done: false
   });
+  localStorage.setItem(lastCourseStorageKey, course);
+  localStorage.setItem(lastPriorityStorageKey, priority);
   save();
   e.target.reset();
   $("deadline").value = localDate(new Date());
-  $("priority").value = "normal";
+  $("course").value = course;
+  $("priority").value = priority;
   render();
+  $("task").focus();
 });
 
 $("sessionForm").addEventListener("submit", e => {
